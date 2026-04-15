@@ -3,7 +3,7 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
 
-# 1. إعدادات الهوية البصرية (العودة للألوان الأصلية والخطوط الواضحة)
+# 1. إعدادات الهوية البصرية (الألوان والخطوط الأصلية المفضلة)
 st.set_page_config(page_title="منصة ريادة للمخاطر", layout="wide")
 
 st.markdown("""
@@ -37,17 +37,26 @@ with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>إشراف أكاديمي</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #00c853; font-weight: bold; font-size: 1.1rem;'>سعادة الدكتورة<br>حنين بنت عبد الرحمن المطيري</p>", unsafe_allow_html=True)
     st.divider()
-    st.info("📊 **مهمة المنصة:** قياس وتحليل مخاطر الأوراق المالية باستخدام تقنيات تعلم الآلة والتحليل الكمي.")
+    st.info("📊 **مهمة المنصة:** تحليل مخاطر الأوراق المالية باستخدام التقنيات الكمية والذكاء الاصطناعي.")
 
 # 4. العنوان الرئيسي
 st.markdown("<h1 class='header-text'>🛡️ منصة ريادة لمخاطر الاستثمار</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 1.2rem;'>التحليل الذكي للأمان المالي في السوق السعودي</p>", unsafe_allow_html=True)
 st.divider()
 
-# 5. منطقة التحكم واختيار الشركة
-col_sel, col_btn = st.columns([3, 1])
+# 5. منطقة التحكم (اختيار الشركة + فترة التحليل)
+col_sel, col_period = st.columns([2, 1])
+
 with col_sel:
     selection = st.selectbox("🎯 اختر الشركة للتحليل:", list(ticker_data.keys()) + ["أدخل رمزاً مخصصاً..."])
+
+with col_period:
+    # إضافة ميزة فترة التحليل
+    period_label = st.select_slider("📅 فترة التحليل التاريخي:", options=["6 أشهر", "سنة", "سنتين"], value="سنة")
+    
+# تحويل الاختيار إلى صيغة يفهمها محرك البيانات
+period_map = {"6 أشهر": "6mo", "سنة": "1y", "سنتين": "2y"}
+selected_period = period_map[period_label]
 
 # تحديد الرمز (Ticker)
 if selection == "أدخل رمزاً مخصصاً...":
@@ -59,17 +68,15 @@ else:
 st.markdown("<br>", unsafe_allow_html=True)
 start_analysis = st.button("🚀 تشغيل المحرك التحليلي")
 
-# 6. منطق المعالجة والنتائج (إصلاح الخطأ Ambiguous Truth Value)
+# 6. منطق المعالجة والنتائج
 if start_analysis:
     if ticker:
-        with st.spinner('جاري سحب البيانات اللحظية وتحليل المخاطر...'):
+        with st.spinner(f'جاري سحب بيانات لفترة {period_label} وتحليل المخاطر...'):
             try:
                 full_ticker = f"{ticker}.SR"
-                # استخدام yfinance لجلب البيانات
                 stock_obj = yf.Ticker(full_ticker)
-                df = stock_obj.history(period="1y")
+                df = stock_obj.history(period=selected_period)
                 
-                # الإصلاح هنا: التحقق باستخدام df.empty
                 if df.empty:
                     st.error("❌ عذراً، لم نتمكن من العثور على بيانات لهذه الشركة. تأكد من الرمز.")
                 else:
@@ -85,7 +92,7 @@ if start_analysis:
                     down = -1 * delta.clip(upper=0)
                     ema_up = up.ewm(com=13, adjust=False).mean()
                     ema_down = down.ewm(com=13, adjust=False).mean()
-                    rs = ema_up / ema_down
+                    rs = ema_up / (ema_down + 1e-10) # تجنب القسمة على صفر
                     rsi = 100 - (100 / (1 + rs.iloc[-1]))
 
                     # منطق التوصية الذكية
@@ -96,10 +103,9 @@ if start_analysis:
                     else:
                         rec, color = "توصية: مراقبة / انتظار", "#ffa500"
 
-                    # عرض النتائج (الواجهة المحسنة)
-                    st.markdown(f"### 📊 نتائج التحليل لـ: {selection.split('(')[0]}")
+                    # عرض النتائج
+                    st.markdown(f"### 📊 نتائج التحليل لـ: {selection.split('(')[0]} (لفترة {period_label})")
                     
-                    # الصف الأول: السعر والتوصية
                     res_c1, res_c2 = st.columns([1, 1])
                     with res_c1:
                         st.metric("السعر الحالي للسهم", f"{current_price:.2f} ريال")
@@ -110,17 +116,16 @@ if start_analysis:
                     
                     st.markdown("<br>", unsafe_allow_html=True)
                     
-                    # الصف الثاني: تفاصيل المخاطرة
                     res_c3, res_c4, res_c5 = st.columns(3)
                     res_c3.metric("مؤشر المخاطرة", f"{risk_score}/100")
-                    res_c4.metric("تذبذب السهم السنوي", f"{volatility:.1f}%")
+                    res_c4.metric("تذبذب السهم (Volatility)", f"{volatility:.1f}%")
                     res_c5.metric("قوة الاتجاه (RSI)", f"{rsi:.1f}")
 
                     # الرسم البياني
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name='سعر الإغلاق', line=dict(color='#00c853', width=2.5)))
                     fig.update_layout(template="plotly_dark", height=450, margin=dict(l=10, r=10, t=50, b=10),
-                                      title="الأداء السعري خلال العام الأخير", xaxis_title="التاريخ", yaxis_title="السعر (ريال)")
+                                      title=f"الأداء السعري خلال فترة {period_label}", xaxis_title="التاريخ", yaxis_title="السعر (ريال)")
                     st.plotly_chart(fig, use_container_width=True)
 
             except Exception as e:
