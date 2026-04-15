@@ -2,113 +2,126 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
 
-# 1. إعدادات الهوية البصرية (ألوان المسودة الأولى مع تحسين الخطوط)
+# 1. إعدادات الهوية البصرية (العودة للألوان الأصلية والخطوط الواضحة)
 st.set_page_config(page_title="منصة ريادة للمخاطر", layout="wide")
 
 st.markdown("""
     <style>
     .main { background-color: #0e1117; color: white; }
-    .stMetric { background-color: #1c2128; padding: 20px; border-radius: 12px; border: 1px solid #30363d; }
+    .stMetric { background-color: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; }
     .header-text { text-align: center; color: #00c853; font-weight: bold; font-size: 2.5rem; }
-    .recommendation-box { padding: 20px; border-radius: 15px; text-align: center; margin-top: 10px; }
-    html, body, [class*="st-"] { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .recommendation-box { padding: 20px; border-radius: 15px; text-align: center; margin-top: 10px; border-width: 2px; border-style: solid; }
+    html, body, [class*="st-"] { font-family: 'Arial', sans-serif; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. قاعدة بيانات الشركات والقطاعات (لتحسين المقارنة)
+# 2. قاعدة بيانات الشركات
 ticker_data = {
-    "أرامكو السعودية (2222)": {"id": "2222", "sector": "الطاقة"},
-    "مصرف الراجحي (1120)": {"id": "1120", "sector": "البنوك"},
-    "سابك (2010)": {"id": "2010", "sector": "المواد الأساسية"},
-    "إس تي سي - stc (7010)": {"id": "7010", "sector": "الاتصالات"},
-    "الأهلي السعودي (1180)": {"id": "1180", "sector": "البنوك"},
-    "معادن (1211)": {"id": "1211", "sector": "المواد الأساسية"},
-    "كهرباء السعودية (5110)": {"id": "5110", "sector": "المرافق العامة"},
-    "مجموعة تداول (1111)": {"id": "1111", "sector": "الخدمات المالية"},
-    "جرير (4190)": {"id": "4190", "sector": "التجزئة"},
-    "المراعي (2280)": {"id": "2280", "sector": "الأغذية"}
+    "أرامكو السعودية (2222)": "2222",
+    "مصرف الراجحي (1120)": "1120",
+    "سابك (2010)": "2010",
+    "إس تي سي - stc (7010)": "7010",
+    "الأهلي السعودي (1180)": "1180",
+    "معادن (1211)": "1211",
+    "كهرباء السعودية (5110)": "5110",
+    "مجموعة تداول (1111)": "1111",
+    "جرير (4190)": "4190",
+    "المراعي (2280)": "2280"
 }
 
-# 3. الشريط الجانبي (تحسين الهوية الأكاديمية)
+# 3. الشريط الجانبي (الإشراف الأكاديمي)
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     st.image("https://cdn-icons-png.flaticon.com/512/3135/3135789.png", width=110)
-    st.markdown("<h3 style='text-align: center;'>إشراف</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #00c853; font-weight: bold;'>د. حنين بنت عبد الرحمن المطيري</p>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>إشراف أكاديمي</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #00c853; font-weight: bold; font-size: 1.1rem;'>سعادة الدكتورة<br>حنين بنت عبد الرحمن المطيري</p>", unsafe_allow_html=True)
     st.divider()
-    st.info("📊 **تطوير:** تم استخدام نماذج تحليل البيانات التاريخية لتقدير مستويات الأمان الاستثماري.")
+    st.info("📊 **مهمة المنصة:** قياس وتحليل مخاطر الأوراق المالية باستخدام تقنيات تعلم الآلة والتحليل الكمي.")
 
 # 4. العنوان الرئيسي
 st.markdown("<h1 class='header-text'>🛡️ منصة ريادة لمخاطر الاستثمار</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 1.2rem;'>النظام الذكي لتقييم أمان الأوراق المالية في السوق السعودي</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.2rem;'>التحليل الذكي للأمان المالي في السوق السعودي</p>", unsafe_allow_html=True)
+st.divider()
 
-# 5. منطقة الاختيار المحسنة (UI/UX)
-col_a, col_b = st.columns([2, 1])
-with col_a:
-    selection = st.selectbox("🎯 اختر الشركة للتحليل المتقدم:", list(ticker_data.keys()) + ["أدخل رمزاً مخصصاً..."])
-with col_b:
-    period = st.select_slider("📅 فترة التحليل:", options=["6 أشهر", "سنة", "سنتين"], value="سنة")
+# 5. منطقة التحكم واختيار الشركة
+col_sel, col_btn = st.columns([3, 1])
+with col_sel:
+    selection = st.selectbox("🎯 اختر الشركة للتحليل:", list(ticker_data.keys()) + ["أدخل رمزاً مخصصاً..."])
 
-ticker = ticker_data[selection]["id"] if selection != "أدخل رمزاً مخصصاً..." else st.text_input("الرمز (4 أرقام):")
+# تحديد الرمز (Ticker)
+if selection == "أدخل رمزاً مخصصاً...":
+    ticker_input = st.text_input("أدخل الرمز (4 أرقام):")
+    ticker = ticker_input.strip()
+else:
+    ticker = ticker_data[selection]
 
-if st.button("🚀 تشغيل المحرك التحليلي"):
+st.markdown("<br>", unsafe_allow_html=True)
+start_analysis = st.button("🚀 تشغيل المحرك التحليلي")
+
+# 6. منطق المعالجة والنتائج (إصلاح الخطأ Ambiguous Truth Value)
+if start_analysis:
     if ticker:
-        with st.spinner('جاري معالجة البيانات الضخمة...'):
+        with st.spinner('جاري سحب البيانات اللحظية وتحليل المخاطر...'):
             try:
                 full_ticker = f"{ticker}.SR"
-                time_map = {"6 أشهر": "180d", "سنة": "1y", "سنتين": "2y"}
-                data = yf.download(full_ticker, period=time_map[period], progress=False)
+                # استخدام yfinance لجلب البيانات
+                stock_obj = yf.Ticker(full_ticker)
+                df = stock_obj.history(period="1y")
                 
-                if not data.empty:
-                    # حسابات مالية متقدمة
-                    curr_price = data['Close'].iloc[-1]
-                    data['Returns'] = data['Close'].pct_change()
-                    volatility = data['Returns'].std() * (252**0.5) * 100
-                    risk_score = min(int(volatility * 2.8), 100)
+                # الإصلاح هنا: التحقق باستخدام df.empty
+                if df.empty:
+                    st.error("❌ عذراً، لم نتمكن من العثور على بيانات لهذه الشركة. تأكد من الرمز.")
+                else:
+                    # حسابات السعر والمخاطرة
+                    current_price = float(df['Close'].iloc[-1])
+                    df['Returns'] = df['Close'].pct_change()
+                    volatility = df['Returns'].std() * (252**0.5) * 100
+                    risk_score = min(int(volatility * 2.5), 100)
                     
-                    # مؤشر RSI (لقوة الاتجاه)
-                    delta = data['Close'].diff()
-                    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                    rs = gain / loss
-                    rsi = 100 - (100 / (1 + rs)).iloc[-1]
+                    # مؤشر RSI بسيط لاتخاذ القرار
+                    delta = df['Close'].diff()
+                    up = delta.clip(lower=0)
+                    down = -1 * delta.clip(upper=0)
+                    ema_up = up.ewm(com=13, adjust=False).mean()
+                    ema_down = down.ewm(com=13, adjust=False).mean()
+                    rs = ema_up / ema_down
+                    rsi = 100 - (100 / (1 + rs.iloc[-1]))
 
-                    # منطق التوصية المحسن
-                    if risk_score < 45 and rsi < 70:
-                        rec, color, note = "فرصة شراء (آمن)", "#00c853", "المخاطرة منخفضة والسهم في منطقة سعرية جيدة."
-                    elif risk_score > 75 or rsi > 80:
-                        rec, color, note = "بيع / جني أرباح", "#ff4b4b", "المخاطرة مرتفعة جداً أو السهم متضخم سعرياً."
+                    # منطق التوصية الذكية
+                    if risk_score < 40 and rsi < 70:
+                        rec, color = "توصية: شراء استثماري", "#00c853"
+                    elif risk_score > 65 or rsi > 80:
+                        rec, color = "توصية: تجنب / بيع", "#ff4b4b"
                     else:
-                        rec, color, note = "انتظار / مراقبة", "#ffa500", "حالة السوق غير مستقرة لهذا السهم حالياً."
+                        rec, color = "توصية: مراقبة / انتظار", "#ffa500"
 
-                    # عرض الواجهة (UX Optimization)
-                    st.markdown(f"### 📊 نتائج تحليل: {selection}")
+                    # عرض النتائج (الواجهة المحسنة)
+                    st.markdown(f"### 📊 نتائج التحليل لـ: {selection.split('(')[0]}")
                     
                     # الصف الأول: السعر والتوصية
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.metric("السعر اللحظي", f"{float(curr_price):.2f} ريال")
-                    with c2:
-                        st.markdown(f"<div class='recommendation-box' style='border: 2px solid {color};'>"
-                                    f"<h3 style='color:{color}; margin:0;'>{rec}</h3>"
-                                    f"<p style='margin:0; font-size:0.9rem;'>{note}</p></div>", unsafe_allow_html=True)
-
+                    res_c1, res_c2 = st.columns([1, 1])
+                    with res_c1:
+                        st.metric("السعر الحالي للسهم", f"{current_price:.2f} ريال")
+                    with res_c2:
+                        st.markdown(f"<div class='recommendation-box' style='border-color: {color};'>"
+                                    f"<h2 style='color: {color}; margin: 0;'>{rec}</h2>"
+                                    f"</div>", unsafe_allow_html=True)
+                    
                     st.markdown("<br>", unsafe_allow_html=True)
                     
                     # الصف الثاني: تفاصيل المخاطرة
-                    c3, c4, c5 = st.columns(3)
-                    c3.metric("مؤشر المخاطرة", f"{risk_score}/100")
-                    c4.metric("التذبذب (Volatility)", f"{volatility:.1f}%")
-                    c5.metric("مؤشر القوة (RSI)", f"{rsi:.1f}")
+                    res_c3, res_c4, res_c5 = st.columns(3)
+                    res_c3.metric("مؤشر المخاطرة", f"{risk_score}/100")
+                    res_c4.metric("تذبذب السهم السنوي", f"{volatility:.1f}%")
+                    res_c5.metric("قوة الاتجاه (RSI)", f"{rsi:.1f}")
 
-                    # الرسم البياني المتقدم
+                    # الرسم البياني
                     fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=data.index, y=data['Close'], name='السعر', line=dict(color='#00c853', width=2)))
-                    fig.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,b=0,t=40),
-                                    xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#333'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name='سعر الإغلاق', line=dict(color='#00c853', width=2.5)))
+                    fig.update_layout(template="plotly_dark", height=450, margin=dict(l=10, r=10, t=50, b=10),
+                                      title="الأداء السعري خلال العام الأخير", xaxis_title="التاريخ", yaxis_title="السعر (ريال)")
                     st.plotly_chart(fig, use_container_width=True)
 
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
+                st.error(f"حدث خطأ فني أثناء التحليل: {e}")
