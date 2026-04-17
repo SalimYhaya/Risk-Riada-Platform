@@ -38,7 +38,7 @@ st.markdown("""
     
     h1, h2, h3 { color: #000000 !important; font-weight: 600; }
     
-    /* أزرار جوجل بحدود سوداء صريحة */
+    /* أزرار بحدود سوداء صريحة */
     .stButton>button {
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -84,7 +84,7 @@ with st.sidebar:
     st.metric("رصيد المحفظة", f"{st.session_state.balance:,.0f} ريال")
     st.caption("إشراف: د. حنين المطيري")
 
-# 4. محرك التحليل ومعالجة تداخل الأعمدة (The Fix)
+# 4. محرك التحليل واصطياد أخطاء البيانات
 ticker_dict = {"أرامكو": "2222", "الراجحي": "1120", "سابك": "2010", "stc": "7010"}
 
 st.markdown("<h1>🛡️ تحليل المخاطر والتوقع</h1>", unsafe_allow_html=True)
@@ -101,16 +101,15 @@ if run:
             data = yf.download(symbol, period="1y", progress=False)
             
             if not data.empty:
-                # --- حل مشكلة Multi-Index و Series ---
-                # نقوم بتبسيط الأعمدة إذا كانت متداخلة
+                # تنظيف أسماء الأعمدة في حال كانت MultiIndex
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = data.columns.get_level_values(0)
                 
-                # استخراج السعر الأخير والتأكد أنه رقم وحيد
+                # سحب السعر الأخير كقيمة عددية وحيدة
                 raw_price = data['Close'].iloc[-1]
                 current_price = float(raw_price.iloc[0]) if isinstance(raw_price, pd.Series) else float(raw_price)
 
-                # حساب العوائد والتذبذب
+                # حساب التذبذب والمخاطرة
                 returns = data['Close'].pct_change().dropna()
                 vol_raw = returns.std() * (252**0.5) * 100
                 volatility = float(vol_raw.iloc[0]) if isinstance(vol_raw, pd.Series) else float(vol_raw)
@@ -122,23 +121,25 @@ if run:
                 future_dates = [data.index[-1] + timedelta(days=i) for i in range(1, 8)]
                 prediction = [current_price * (1 + (np.random.normal(0, 0.012))) for _ in range(7)]
 
-                # العرض المالي (أبيض وأسود صريح)
+                # العرض المالي
                 st.divider()
                 r1, r2, r3 = st.columns(3)
                 r1.metric("السعر الحالي", f"{current_price:.2f} ريال")
                 r2.metric("مؤشر المخاطرة", f"{risk_score}/100")
                 r3.metric("نبض السوق الذكي", f"{sentiment}%")
 
-                # الرسم البياني (حدود سوداء وخطوط واضحة)
+                # الرسم البياني (تصحيح الدوال)
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=data.index, y=data['Close'].values.flatten(), name="السعر التاريخي", line=dict(color='#000000', width=1.5)))
                 fig.add_trace(go.Scatter(x=future_dates, y=prediction, name="توقع AI", line=dict(color='#00c853', dash='dot')))
+                
                 fig.update_layout(plot_bgcolor='white', paper_bgcolor='white', template="none", height=400)
                 fig.update_xaxes(showline=True, linewidth=1, linecolor='black', gridcolor='#f2f2f2')
-                fig.update_axes(showline=True, linewidth=1, linecolor='black', gridcolor='#f2f2f2')
+                fig.update_yaxes(showline=True, linewidth=1, linecolor='black', gridcolor='#f2f2f2') # تم التصحيح هنا
+                
                 st.plotly_chart(fig, use_container_width=True)
 
-                # التقرير (Black Border)
+                # التقرير
                 st.markdown(f"""
                 <div class='report-card'>
                     <h3>🤖 تقرير المستشار المخصص ({st.session_state.investor_type}):</h3>
@@ -146,8 +147,10 @@ if run:
                     <b>النتيجة:</b> السهم يظهر توازناً فنياً يتوافق مع استراتيجيتك الاستثمارية.
                 </div>
                 """, unsafe_allow_html=True)
+            else:
+                st.error("لم يتم العثور على بيانات للسهم المختار.")
         except Exception as e:
             st.error(f"حدث خطأ في معالجة القيمة الرقمية: {str(e)}")
 
 st.divider()
-st.caption("د.حنين بنت عبد الرحمن المطيري تعمل على توفير الاداه التي تساعد في فهم المخاطر الاستثمارية بالاسهم")
+st.caption("د. حنين بنت عبد الرحمن المطيري تعمل على توفير الأداة التي تساعد في فهم المخاطر الاستثمارية بالأسهم")
